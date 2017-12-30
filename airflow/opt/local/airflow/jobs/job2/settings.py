@@ -1,0 +1,5 @@
+import os
+
+
+BIGQUERY_PROJECT = os.environ['BIGQUERY_PROJECT']
+BIGQUERY_DATASET = os.environ['BIGQUERY_DATASET']

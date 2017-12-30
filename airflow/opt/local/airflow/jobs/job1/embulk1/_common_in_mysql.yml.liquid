@@ -1,0 +1,12 @@
+{% include 'common_variable'  %}
+in:
+	type: mysql
+	host: {{ MYSQL_HOST }}
+	port: {{ MYSQL_PORT }}
+	user: {{ MYSQL_USER }}
+	password: {{ MYSQL_USER }}
+	database: {{ MYSQL_DATABASE }}
+	query: table
+	options:
+		useLegacyDatetimeCode: false
+		serverTimezone: "UTC"
