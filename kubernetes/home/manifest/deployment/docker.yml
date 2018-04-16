@@ -1,0 +1,55 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: home-docker
+  namespace: home
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: home-docker
+        tier: docker
+    spec:
+      containers:
+      - name: home-docker
+        image: "docker:17.12.0-ce-dind"
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            memory: "2Gi"
+        args:
+        - "--storage-driver"
+        - "overlay"
+        - "--host"
+        - "tcp://0.0.0.0:2376"
+          #- "--tlsverify"
+        ports:
+        - name: docker
+          containerPort: 2376
+        volumeMounts:
+        - name: home-docker
+          mountPath: /var/lib/docker
+      volumes:
+        - name: home-docker
+          gcePersistentDisk:
+            pdName: home-docker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-docker
+  namespace: home
+spec:
+  type: ClusterIP
+  selector:
+    app: home-docker
+    tier: docker
+  ports:
+    - name: docker
+      protocol: TCP
+      port: 2376
+      targetPort: docker

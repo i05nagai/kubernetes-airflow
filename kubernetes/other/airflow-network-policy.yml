@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: airflow-network-policy
+spec:
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: /32
+    - podSelector:
+        matchLabels:
+          tier: ingress
+    ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  - to:
+    - ipBlock:
+      cidr: 10.0.0.0/24
+    - ipBlock:
+      cidr: /32
+

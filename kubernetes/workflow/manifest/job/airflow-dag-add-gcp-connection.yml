@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow-airflow-dag-add-gcp-connection
+spec:
+  template:
+    metadata:
+      name: workflow-airflow-dag-add-gcp-connection
+    spec:
+      containers:
+        - image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+          imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+          args: ["airflow", "run", "add_gcp_connection", "add_gcp_connection", "2001-01-01"]
+          name: workflow-airflow-dag-add-gcp-connection
+          env:
+            # required if you run as root
+          - name: C_FORCE_ROOT
+            value: "true"
+          envFrom:
+          - configMapRef:
+              name: workflow-airflow-environment-variable
+          - secretRef:
+              name: workflow-airflow-environment-variable
+          - configMapRef:
+              name: workflow-mysql-environment-variable
+          - secretRef:
+              name: workflow-mysql-environment-variable
+      restartPolicy: OnFailure
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+

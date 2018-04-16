@@ -1,0 +1,24 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: workflow-airflow-nginx
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.global-static-ip-name: workflow-airflow-ip
+    ingress.kubernetes.io/rewrite-target: /
+  labels:
+    app: workflow-airflow-nginx
+    tier: ingress
+spec:
+  rules:
+   - http:
+       paths:
+       - path: "/"
+         backend:
+           serviceName: workflow-airflow-webserver
+           servicePort: 80
+  backend:
+    serviceName: workflow-airflow-webserver
+    servicePort: 80
+

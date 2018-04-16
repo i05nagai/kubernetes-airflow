@@ -1,0 +1,63 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: airflow-web
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: airflow
+      tier: web
+  template:
+    metadata:
+      labels:
+        app: airflow
+        tier: web
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: web
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: airflow-scheduler
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: airflow
+      tier: scheduler
+  template:
+    metadata:
+      labels:
+        app: airflow
+        tier: scheduler
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: web
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: airflow-worker
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: airflow
+      tier: worker
+  template:
+    metadata:
+      labels:
+        app: airflow
+        tier: worker
+

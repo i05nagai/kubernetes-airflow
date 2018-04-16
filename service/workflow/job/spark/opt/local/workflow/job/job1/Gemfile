@@ -1,0 +1,4 @@
+source 'https://rubygems.org/'
+
+gem 'embulk-input-mysql'
+gem 'embulk-output-bigquery'

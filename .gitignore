@@ -1,3 +1,14 @@
+#
+# repository
+#
+env_me.sh
+/config/gcp/credential.json
+/config/secret/_common.sh
+/config/secret/_dev.sh
+/config/secret/_stg.sh
+/config/secret/_prod.sh
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -18,7 +29,6 @@ lib/
 lib64/
 parts/
 sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
@@ -102,3 +112,17 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#
+# terraform
+#
+
+#  Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+*.tfvars

@@ -1,0 +1,77 @@
+steps:
+# build docker images
+- name: 'asia.gcr.io/$PROJECT_ID/builder:latest'
+  args:
+  - bash
+  - '-c'
+  - |
+    date -u
+    ls -la /workspace
+    pwd
+    /opt/local/builder/build.sh /workspace
+  env:
+  - "DOCKER_IMAGE_TAG=$COMMIT_SHA"
+  - "CI=$_CI"
+  timeout: 2000s
+# test
+- name: 'asia.gcr.io/$PROJECT_ID/tester:latest'
+  args:
+  - bash
+  - '-c'
+  - |
+    /opt/local/tester/run_test_google_cloud_sdk_script.sh /workspace
+    /opt/local/tester/run_test_spark.sh /workspace
+  timeout: 500s
+# deploy
+- name: 'asia.gcr.io/$PROJECT_ID/deployer:latest'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    /workspace/script/gcp/decrypt.sh "$${ENVIRONMENT_NAME}"
+    /opt/local/core/entrypoint.sh /opt/local/deployer/entrypoint.sh /opt/local/deployer/deploy.sh /workspace
+  env:
+  - "DOCKER_IMAGE_TAG=$COMMIT_SHA"
+  - "ENVIRONMENT_NAME=${_ENVIRONMENT_NAME}"
+  - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/config/gcp/credential.json"
+  timeout: 1000s
+images:
+  # latest
+- 'asia.gcr.io/$PROJECT_ID/builder:latest'
+- 'asia.gcr.io/$PROJECT_ID/core:latest'
+- 'asia.gcr.io/$PROJECT_ID/cli-base:latest'
+- 'asia.gcr.io/$PROJECT_ID/embulk:latest'
+- 'asia.gcr.io/$PROJECT_ID/java8:latest'
+- 'asia.gcr.io/$PROJECT_ID/kubectl:latest'
+- 'asia.gcr.io/$PROJECT_ID/deployer:latest'
+- 'asia.gcr.io/$PROJECT_ID/builder:latest'
+- 'asia.gcr.io/$PROJECT_ID/pyspark:latest'
+- 'asia.gcr.io/$PROJECT_ID/terraform:latest'
+- 'asia.gcr.io/$PROJECT_ID/tester:latest'
+- 'asia.gcr.io/$PROJECT_ID/workflow-airflow:latest'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-db-from-rds-to-big-query:latest'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-insert-kpi:latest'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-process-event-log:latest'
+  # COMMIT_SHA
+- 'asia.gcr.io/$PROJECT_ID/builder:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/core:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/cli-base:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/embulk:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/java8:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/kubectl:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/deployer:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/builder:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/pyspark:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/terraform:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/tester:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/workflow-airflow:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-db-from-rds-to-big-query:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-insert-kpi:$COMMIT_SHA'
+- 'asia.gcr.io/$PROJECT_ID/workflow-job-process-event-log:$COMMIT_SHA'
+tags:
+- '$COMMIT_SHA'
+- '$REPO_NAME'
+timeout: 3500s
+options:
+  substitutionOption: 'ALLOW_LOOSE'
+  # machineType: 'N1_HIGHCPU_8'

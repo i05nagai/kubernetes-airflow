@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: workflow-airflow-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: workflow-airflow-ip
+    ingress.kubernetes.io/rewrite-target: /
+  labels:
+    app: workflow-airflow-ingress
+    tier: ingress
+spec:
+  rules:
+    # - host: ${ENVIRONMENT_NAME}.workflow.hoge.com.
+  - host: workflow.hoge.com
+    http:
+      paths:
+      - path: "/"
+        backend:
+          serviceName: workflow-airflow-webserver
+          servicePort: 80
+  backend:
+    serviceName: workflow-airflow-webserver
+    servicePort: 80

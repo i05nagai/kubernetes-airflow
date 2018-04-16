@@ -1,0 +1,58 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: home
+  namespace: home
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home
+  template:
+    metadata:
+      labels:
+        app: home
+    spec:
+      imagePullSecrets:
+        - name: gcr-asia
+      containers:
+      - name: home
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/home:latest
+        envFrom:
+        - configMapRef:
+            name: home-environment-variable
+        - secretRef:
+            name: home-environment-variable
+        ports:
+          - name: sshd
+            containerPort: 22
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /srv/volume/shared/home
+            name: home-pvc-nfs-home
+          - name: home-github-deploy-key
+            mountPath: "/root/.ssh/github_deploy_key"
+            readOnly: true
+      volumes:
+      - name: home-pvc-nfs-home
+        persistentVolumeClaim:
+          claimName: home-pvc-nfs-home
+      - name: home-github-deploy-key
+        secret:
+          secretName: home-github-deploy-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home
+  namespace: home
+spec:
+  ports:
+    - name: sshd
+      port: 10507
+      targetPort: 22
+  selector:
+    app: home
+  type: LoadBalancer

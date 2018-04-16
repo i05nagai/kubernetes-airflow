@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-connection-gcp
+spec:
+  template:
+    metadata:
+      name: airflow-connection-gcp
+    spec:
+      containers:
+        - image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/airflow-core:latest
+          imagePullPolicy: ${DOCKER_IMAGE_PULL_POLICY}
+          args:
+          - "airflow"
+          - "connections"
+          - "--add"
+          - "--conn_id=gcp"
+          - "--conn_type=google_cloud_platform"
+          - "--conn_extra='${_AIRFLOW_CONN_EXTRA}'"
+          name: airflow-connection-docker-registry
+          env:
+            # required if you run as root
+          - name: C_FORCE_ROOT
+            value: "true"
+          envFrom:
+          - configMapRef:
+              name: airflow-environment-variable
+          - secretRef:
+              name: airflow-environment-variable
+          - configMapRef:
+              name: mysql-environment-variable
+          - secretRef:
+              name: mysql-environment-variable
+      restartPolicy: OnFailure

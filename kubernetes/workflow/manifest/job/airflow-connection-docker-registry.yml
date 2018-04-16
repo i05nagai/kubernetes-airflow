@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow-airflow-connection-docker-registry
+spec:
+  template:
+    metadata:
+      name: workflow-airflow-connection-docker-registry
+    spec:
+      containers:
+        - image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+          imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+          args:
+          # /dev/null prevents from logging access token
+          # \x27 is single quote
+          # delete newlines and replace double quote with single quote
+          - /usr/local/bin/airflow connections --add --conn_id=docker --conn_type=docker --conn_host=https://asia.gcr.io --conn_login=_json_key --conn_extra="${_WORKFLOW_AIRFLOW_GCP_GCR_CONN_EXTRA}"
+          name: workflow-airflow-connection-docker-registry
+          env:
+            # required if you run as root
+          - name: C_FORCE_ROOT
+            value: "true"
+          envFrom:
+          - configMapRef:
+              name: workflow-airflow-environment-variable
+          - secretRef:
+              name: workflow-airflow-environment-variable
+          - configMapRef:
+              name: workflow-mysql-environment-variable
+          - secretRef:
+              name: workflow-mysql-environment-variable
+          volumeMounts:
+          - name: workflow-docker-asia-gcr
+            readOnly: true
+            mountPath: "/root/.docker"
+      volumes:
+      - name: workflow-docker-asia-gcr
+        projected:
+          sources:
+          - secret:
+              name: workflow-docker-asia-gcr
+              items:
+              - key: .dockerconfigjson
+                path: config.json
+                mode: 400
+      restartPolicy: OnFailure

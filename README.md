@@ -20,8 +20,8 @@ brew link --force gettext
 
 
 ```
-minikube mount airflow/opt:/opt
+minikube mount ./airflow/opt:/opt
 ```
 
 ## Reference
-
+* [ErezHorev/dockerized_nfs_server: Dockerized NFS server - NFS server as a docker container](https://github.com/ErezHorev/dockerized_nfs_server)

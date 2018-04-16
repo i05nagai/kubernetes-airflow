@@ -1,0 +1,272 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-airflow-webserver
+  labels:
+    app: workflow-airflow-webserver
+    tier: webserver
+spec:
+  type: NodePort
+  selector:
+    app: workflow-airflow-webserver
+    tier: webserver
+  ports:
+    - name: webserver
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30601
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-airflow-flower
+  labels:
+    app: workflow-airflow-flower
+    tier: flower
+spec:
+  type: NodePort
+  selector:
+    app: workflow-airflow-flower
+    tier: flower
+  ports:
+    - name: flower
+      protocol: TCP
+      port: 5555
+      targetPort: flower
+      nodePort: 30555
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-airflow-webserver
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-airflow-webserver
+        tier: webserver
+    spec:
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: workflow-docker-asia-gcr
+      containers:
+      - name: workflow-webserver
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        envFrom:
+        - configMapRef:
+            name: workflow-airflow-environment-variable
+        - secretRef:
+            name: workflow-airflow-environment-variable
+        - configMapRef:
+            name: workflow-mysql-environment-variable
+        - secretRef:
+            name: workflow-mysql-environment-variable
+        ports:
+        - name: webserver
+          containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 150m
+            memory: 300Mi
+        readinessProbe:
+          httpGet:
+            port: 80
+            path: /health
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            port: 80
+            path: /health
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+        args: ["webserver"]
+        volumeMounts:
+        - name: workflow-docker-asia-gcr
+          readOnly: true
+          mountPath: "/root/.docker"
+      volumes:
+      - name: workflow-docker-asia-gcr
+        projected:
+          sources:
+          - secret:
+              name: workflow-docker-asia-gcr
+              items:
+              - key: .dockerconfigjson
+                path: config.json
+                mode: 400
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-airflow-flower
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-airflow-flower
+        tier: flower
+    spec:
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: workflow-docker-asia-gcr
+      containers:
+      - name: workflow-flower
+        args: ["flower"]
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        envFrom:
+        - configMapRef:
+            name: workflow-airflow-environment-variable
+        - secretRef:
+            name: workflow-airflow-environment-variable
+        - configMapRef:
+            name: workflow-mysql-environment-variable
+        - secretRef:
+            name: workflow-mysql-environment-variable
+        ports:
+        - name: flower
+          containerPort: 5555
+        resources:
+          limits:
+            cpu: 300m
+            memory: 200Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        volumeMounts:
+        - name: workflow-docker-asia-gcr
+          readOnly: true
+          mountPath: "/home/root/.docker"
+      volumes:
+      - name: workflow-docker-asia-gcr
+        projected:
+          sources:
+          - secret:
+              name: workflow-docker-asia-gcr
+              items:
+              - key: .dockerconfigjson
+                path: config.json
+                mode: 400
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-airflow-scheduler
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-airflow-scheduler
+        tier: scheduler
+    spec:
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: workflow-docker-asia-gcr
+      containers:
+      - name: workflow-scheduler
+        args: ["scheduler"]
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        envFrom:
+        - configMapRef:
+            name: workflow-airflow-environment-variable
+        - secretRef:
+            name: workflow-airflow-environment-variable
+        - configMapRef:
+            name: workflow-mysql-environment-variable
+        - secretRef:
+            name: workflow-mysql-environment-variable
+        volumeMounts:
+        - name: workflow-docker-asia-gcr
+          readOnly: true
+          mountPath: "/root/.docker"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 300Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+      volumes:
+      - name: workflow-docker-asia-gcr
+        projected:
+          sources:
+          - secret:
+              name: workflow-docker-asia-gcr
+              items:
+              - key: .dockerconfigjson
+                path: config.json
+                mode: 400
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-airflow-worker
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-airflow-worker
+        tier: worker
+    spec:
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: workflow-docker-asia-gcr
+      containers:
+      - name: workflow-worker
+        args: ["worker"]
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        env:
+          # required if you run as root
+        - name: C_FORCE_ROOT
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: workflow-airflow-environment-variable
+        - secretRef:
+            name: workflow-airflow-environment-variable
+        - configMapRef:
+            name: workflow-mysql-environment-variable
+        - secretRef:
+            name: workflow-mysql-environment-variable
+        volumeMounts:
+        - name: workflow-docker-asia-gcr
+          readOnly: true
+          mountPath: "/root/.docker"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 700Mi
+      volumes:
+      - name: workflow-docker-asia-gcr
+        projected:
+          sources:
+          - secret:
+              name: workflow-docker-asia-gcr
+              items:
+              - key: .dockerconfigjson
+                path: config.json
+                mode: 400
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-highcpu

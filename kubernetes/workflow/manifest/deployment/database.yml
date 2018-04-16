@@ -1,0 +1,115 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-mysql
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-mysql
+        tier: db
+    spec:
+      containers:
+      - name: workflow-mysql
+        image: "mysql:8.0.3"
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        args: ["/bin/bash", "-c", "rm -rf /var/lib/mysql/* && docker-entrypoint.sh mysqld"]
+        ports:
+        - name: mysql
+          containerPort: 3306
+        envFrom:
+        - configMapRef:
+            name: workflow-mysql-environment-variable
+        - secretRef:
+            name: workflow-mysql-environment-variable
+        volumeMounts:
+          - name: workflow-mysql
+            mountPath: /var/lib/mysql
+        resources:
+          limits:
+            cpu: 800m
+            memory: 2000Mi
+          requests:
+            cpu: 150m
+            memory: 850Mi
+      volumes:
+        - name: workflow-mysql
+          gcePersistentDisk:
+            pdName: workflow-mysql
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-redis
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-redis
+        tier: redis
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: workflow-redis
+        image: "redis:3.2.11"
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        ports:
+        - name: management
+          containerPort: 16379
+        - name: node
+          containerPort: 6379
+        volumeMounts:
+          - name: workflow-redis
+            mountPath: /data
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+      volumes:
+        - name: workflow-redis
+          gcePersistentDisk:
+            pdName: workflow-redis
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-lpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: workflow-mysql
+    tier: db
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: workflow-redis
+    tier: redis
+  ports:
+    - name: node
+      protocol: TCP
+      port: 6379
+      targetPort: node
+    - name: management
+      protocol: TCP
+      port: 16379
+      targetPort: management

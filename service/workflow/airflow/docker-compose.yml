@@ -1,0 +1,125 @@
+version: '3'
+services:
+    redis:
+        image: 'redis:3.2.11'
+        ports:
+            - "6379:6379"
+
+    mysql:
+        image: mysql:8.0.3
+        environment: &mysql-environment-variable
+          # mysql
+          - MYSQL_DATABASE=${MYSQL_DATABASE}
+          - MYSQL_USER="${MYSQL_USER}"
+          # credentials
+          - MYSQL_PASSWORD="${MYSQL_PASSWORD}"
+          - MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+        ports:
+            - "3306:3306"
+
+    webserver:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        restart: always
+        depends_on:
+          - mysql
+          - redis
+        environment: &environment-variable
+          - AIRFLOW__CORE__TASK_LOG_READER=file.task
+          - AIRFLOW__CORE__LOGGING_CONFIG_CLASS=
+          - WORKFLOW_MYSQL_PROXY_SERVICE_HOST=mysql
+          - WORKFLOW_MYSQL_PROXY_SERVICE_PORT=3306
+          - WORKFLOW_AIRFLOW_WEBSERVER_SERVICE_HOST=webserver
+          - WORKFLOW_AIRFLOW_WEBSERVER_SERVICE_PORT=80
+          - DOCKER_REGISTRY_HOST=${DOCKER_REGISTRY_HOST}
+          - DOCKER_IMAGE_BASE=${DOCKER_IMAGE_BASE}
+          - AWS_DEFAULT_REGION=ap-northeast-1
+          - DOCKER_IMAGE_TAG=latest
+          - ENVIRONMENT_NAME=dev
+          - WORKFLOW_DOCKER_SERVICE_HOST=/var/lib/docker
+          - WORKFLOW_DOCKER_SERVICE_PORT=2375
+          - WORKFLOW_REDIS_SERVICE_HOST=redis
+          - WORKFLOW_REDIS_SERVICE_PORT=6379
+          - WORKFLOW_AIRFLOW_EMAIL=airflow@airflow.com
+          - WORKFLOW_AIRFLOW_PASSWORD=airflow
+          - WORKFLOW_AIRFLOW_USERNAME=airflow
+          #
+          - DOCKER_REGISTRY_HOST=${DOCKER_REGISTRY_HOST}
+          - DOCKER_IMAGE_BASE=${DOCKER_IMAGE_BASE}
+          # GCP
+          - GOOGLE_APPLICATION_CREDENTIALS='${GCP_IAM_JSON_KEY_PATH}'
+          - DOCKER_URL=${DOCKER_URL}
+          - ENVIRONMENT_NAME=${ENVIRONMENT_NAME}
+          - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+          - GCP_BIG_QUERY_DATASET=${GCP_BIG_QUERY_DATASET}
+          - GCP_IAM_JSON_KEY_PATH='${GCP_IAM_JSON_KEY_PATH}'
+          - SLACK_WEBHOOK_URL='${SLACK_WEBHOOK_URL}'
+          # mysql
+          - MYSQL_DATABASE=${MYSQL_DATABASE}
+          - MYSQL_USER="${MYSQL_USER}"
+          # credentials
+          - MYSQL_PASSWORD="${MYSQL_PASSWORD}"
+          - MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}"
+          # aws
+          - AWS_ACCESS_KEY_ID='${AWS_IAM_ACCESS_KEY_ID}'
+          - AWS_SECRET_ACCESS_KEY='${AWS_IAM_SECRET_KEY}'
+          # GCP
+          - GCP_CREDENTIALS='${GCP_IAM_JSON_KEY_DATA}'
+          - GCP_IAM_JSON_KEY_DATA='${GCP_IAM_JSON_KEY_DATA}'
+          - GCP_IAM_ACCESS_TOKEN='${GCP_IAM_ACCESS_TOKEN}'
+          - AWS_RDS_PASSWORD='${AWS_RDS_PASSWORD}'
+          # if you are root
+          - C_FORCE_ROOT=true
+        user: root
+        ports:
+          - "8080:80"
+        command: webserver
+
+    initdb:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        deploy:
+          restart_policy:
+            condition: none
+        depends_on:
+          - mysql
+          - redis
+        environment: *environment-variable
+        user: root
+        command: airflow initdb
+
+    job-add-airflow-user:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        deploy:
+          restart_policy:
+            condition: none
+        depends_on:
+          - mysql
+          - redis
+        environment: *environment-variable
+        user: root
+        command: ["airflow", "run", "add_airflow_user", "add_airflow_user", "2001-01-01"]
+
+    flower:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        restart: always
+        depends_on:
+          - redis
+        environment: *environment-variable
+        ports:
+          - "5555:5555"
+        command: flower
+
+    scheduler:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        restart: always
+        depends_on:
+            - webserver
+        environment: *environment-variable
+        command: scheduler
+
+    worker:
+        image: ${DOCKER_REGISTRY_HOST}/${DOCKER_IMAGE_BASE}/workflow-airflow:latest
+        restart: always
+        depends_on:
+            - scheduler
+        environment: *environment-variable
+        command: worker

@@ -1,0 +1,59 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-docker
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-docker
+        tier: docker
+    spec:
+      containers:
+      - name: workflow-docker
+        image: "docker:17.12.0-ce-dind"
+        imagePullPolicy: ${_DOCKER_IMAGE_PULL_POLICY}
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            cpu: "12000m"
+            memory: "12Gi"
+          requests:
+            cpu: "8000m"
+            memory: "8Gi"
+        args:
+        - "--storage-driver"
+        - "overlay"
+        - "--host"
+        - "tcp://0.0.0.0:2376"
+          #- "--tlsverify"
+        ports:
+        - name: docker
+          containerPort: 2376
+        volumeMounts:
+        - name: workflow-docker
+          mountPath: /var/lib/docker
+      volumes:
+        - name: workflow-docker
+          gcePersistentDisk:
+            pdName: workflow-docker
+      nodeSelector:
+        cloud.google.com/gke-nodepool: core-node-pool-highcpu
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-docker
+spec:
+  type: ClusterIP
+  selector:
+    app: workflow-docker
+    tier: docker
+  ports:
+    - name: docker
+      protocol: TCP
+      port: 2376
+      targetPort: docker

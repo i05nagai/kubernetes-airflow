@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: airflow
+    tier: db
+  ports:
+    - name: mysql
+      protocol: TCP
+      port: 3306
+      targetPort: mysql
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: airflow
+        tier: db
+    spec:
+      containers:
+      - name: mysql
+        image: mysql
+        ports:
+        - name: mysql
+          containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "airflow"
+        - name: MYSQL_DATABASE
+          value: "airflow"
+        - name: MYSQL_USER
+          value: "airflow"
+        - name: MYSQL_PASSWORD
+          value: "airflow"

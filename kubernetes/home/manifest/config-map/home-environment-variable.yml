@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: home-environment-variable
+data:
+  # docker
+  DOCKER_REGISTRY_HOST: ${DOCKER_REGISTRY_HOST}
+  DOCKER_IMAGE_BASE: ${DOCKER_IMAGE_BASE}
+  DOCKER_HOST: tcp://home-docker.home.svc.cluster.local:2376
+  # gcp
+  GOOGLE_APPLICATION_CREDENTIALS: '/etc/skel/.config/gcloud/credentials.json'
+  GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+  HOME_USERS: 'i05nagai:'
+  HOME_SUDOERS: 'i05nagai'
+

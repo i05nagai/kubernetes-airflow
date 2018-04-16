@@ -1,0 +1,33 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: persistent-volume-mysql
+  labels:
+    volume: mysql
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  gcePersistentDisk:
+    pdName: standard
+    fsType: ext4
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: persistent-volume-redis
+  labels:
+    volume: redis
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  gcePersistentDisk:
+    pdName: standard
+    fsType: ext4
+
